@@ -18,6 +18,10 @@ jobs:
       
       - name: sfdc_auth_details
         run: |
+          echo "client id: ${{ secrets.SFDC_CLIENT_ID }}"
+          echo "client secret: ${{ secrets.SFDC_CLIENT_SECRET }}"
+          echo "username: ${{ secrets.SFDC_DEV_USERNAME }}"
+          echo "password: ${{ secrets.SFDC_DEV_PASSWORD }}"
           # Validating access_token if null then terminate the process
           if [[ -z ${{ steps.sfdc_auth.outputs.access_token }} ]] || [[ ${{ steps.sfdc_auth.outputs.access_token }} == "null" ]];
           then 
