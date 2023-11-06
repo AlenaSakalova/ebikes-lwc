@@ -3,7 +3,7 @@ name: SFDC Authentication using details
 run-name: SFDC Authentication
 on: [push]
 jobs:
-  SFDX Auth:
+  SFDX_Auth:
   
     runs-on: ubuntu-latest
     
