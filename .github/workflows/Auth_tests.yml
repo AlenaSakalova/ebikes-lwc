@@ -42,7 +42,7 @@ jobs:
   
               # Create scratch org
               - name: 'Create scratch org'
-                run: sf org create scratch -f config/project-scratch-def.json -a scratch-org -d -y 1
+                run: sf org create scratch --target-dev-hub devhub --set-default --definition-file config/project-scratch-def.json --alias scratch-org --wait 10 --duration-days 1
   
               # Deploy source to scratch org
               - name: 'Push source to scratch org'
