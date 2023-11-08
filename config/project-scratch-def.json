@@ -2,7 +2,6 @@
     "orgName": "Ebikes",
     "edition": "Developer",
     "hasSampleData": false,
-     "adminEmail": "lenbrest@gmail.com.invalid",
     "features": ["Communities", "Walkthroughs", "EnableSetPasswordInApi"],
     "settings": {
         "communitiesSettings": {
