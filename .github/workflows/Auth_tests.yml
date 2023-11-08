@@ -1,0 +1,84 @@
+# Unique name for this workflow
+name: CI
+
+# Definition when the workflow should run
+on:
+    workflow_dispatch:
+    push:
+        branches:
+            - main
+            - dev
+jobs:            
+  scratch-org-test:
+          runs-on: ubuntu-latest
+          
+          steps:
+              # Install Salesforce CLI
+              - name: 'Install Salesforce CLI'
+                run: |
+                    npm install @salesforce/cli --location=global
+                    nodeInstallPath=$(npm config get prefix)
+                    echo "$nodeInstallPath/bin" >> $GITHUB_PATH
+                    sf --version
+  
+              # Checkout the source code
+              - name: 'Checkout source code'
+                uses: actions/checkout@v3
+  
+              # Store secret for dev hub
+              - name: 'Populate auth file with DEVHUB_SFDX_URL secret'
+                shell: bash
+                run: |
+                    echo ${{ secrets.DEVHUB_SFDX_URL }} > ./DEVHUB_SFDX_URL.txt
+                    secretFileSize=$(wc -c "./DEVHUB_SFDX_URL.txt" | awk '{print $1}')
+                    if [ $secretFileSize == 1 ]; then
+                        echo "Missing DEVHUB_SFDX_URL secret. Is this workflow running on a fork?";
+                        exit 1;
+                    fi
+                
+              # Authenticate dev hub
+              - name: 'Authenticate Dev Hub'
+                run: sf org login sfdx-url -f ./DEVHUB_SFDX_URL.txt -a devhub -d
+  
+              # Create scratch org
+              - name: 'Create scratch org'
+                run: sf org create scratch --target-dev-hub devhub --set-default --definition-file config/project-scratch-def.json --alias scratch-org --wait 10 --duration-days 1
+  
+              # Deploy source to scratch org
+              - name: 'Push source to scratch org'
+                run: sf project deploy start
+  
+              # Assign permissionset
+              - name: 'Assign permissionset to default user'
+                run: sf org assign permset -n ebikes
+  
+              # Import sample data
+              - name: 'Import sample data'
+                run: sf data tree import -p ./data/sample-data-plan.json
+  
+              # Wait for XP Cloud activation
+              - name: 'Wait for two min for XP Cloud activation'
+                run: sleep 120s
+  
+              # Publish XP Cloud site
+              - name: 'Publish XP Cloud site'
+                run: sf community publish -n E-Bikes
+  
+              # Deploy guest profile for XP Cloud site
+              - name: 'Deploy guest profile for XP Cloud site'
+                run: sf project deploy start --metadata-dir=guest-profile-metadata -w 10
+  
+              # Run Apex tests in scratch org
+              - name: 'Run Apex tests'
+                run: sf apex test run -c -r human -d ./tests/apex -w 20
+  
+              # Upload code coverage data
+              - name: 'Upload code coverage for Apex to Codecov.io'
+                uses: codecov/codecov-action@v3
+                with:
+                    flags: Apex
+  
+              # Housekeeping
+              - name: 'Delete scratch org'
+                if: always()
+                run: sf org delete scratch -p -o scratch-org
